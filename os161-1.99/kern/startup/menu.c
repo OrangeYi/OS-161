@@ -213,6 +213,22 @@ cmd_chdir(int nargs, char **args)
 	return vfs_chdir(args[1]);
 }
 
+
+
+/*
+ * Command for dth.
+ */
+static
+int
+cmd_dth(int nargs, char **args)
+{	
+	(void)args;
+	(void)nargs;
+	kprintf("DB_THREADS Debug Enabled\n");
+	dbflags = DB_THREADS;
+	return 0;
+}
+
 /*
  * Command for printing the current directory.
  */
@@ -436,7 +452,8 @@ static const char *opsmenu[] = {
 	"[pwd]     Print current directory   ",
 	"[sync]    Sync filesystems          ",
 	"[panic]   Intentional panic         ",
-	"[q]       Quit and shut down        ",
+	//"[q]       Quit and shut down        ",
+	"[dth]     Enable DB-THREADS debugging",
 	NULL
 };
 
@@ -546,6 +563,7 @@ static struct {
 	{ "pwd",	cmd_pwd },
 	{ "sync",	cmd_sync },
 	{ "panic",	cmd_panic },
+	{ "dth",	cmd_dth },
 	{ "q",		cmd_quit },
 	{ "exit",	cmd_quit },
 	{ "halt",	cmd_quit },
