@@ -209,7 +209,7 @@ lock_acquire(struct lock *lock)
         KASSERT(curthread->t_in_interrupt == false);
 
     spinlock_acquire(&lock->lk_lock);
-        while (&lock->lk_holder != NULL) {
+        while (lock->lk_holder != NULL) {
         /*
          * Bridge to the wchan lock, so if someone else comes
          * along in V right this instant the wakeup can't go
@@ -291,7 +291,7 @@ cv_create(const char *name)
         }
         
         // add stuff here as needed
-        cv->cv_wchan = wchan_create(name);
+        cv->cv_wchan = wchan_create(cv->cv_name);
         if(cv->cv_wchan == NULL){
             kfree(cv->cv_name);
             kfree(cv);
