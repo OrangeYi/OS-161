@@ -164,8 +164,8 @@ lock_create(const char *name)
         }
         
         // add stuff here as needed
-        lock->lk_wchan = wchan_create(lock->lk_name);
-        if (lock->lk_wchan == NULL) {
+        lock->lk_wchan = wchan_create(lock->lk_name);//creat new wait channel for lock
+        if (lock->lk_wchan == NULL) {//if creat wait channel fail than free
             kfree(lock->lk_name);
             kfree(lock);
         return NULL;
@@ -209,7 +209,7 @@ lock_acquire(struct lock *lock)
         KASSERT(curthread->t_in_interrupt == false);
 
     spinlock_acquire(&lock->lk_lock);
-        while (lock->lk_holder != NULL) {
+        while (lock->lk_holder != NULL) {//if someone is using
         /*
          * Bridge to the wchan lock, so if someone else comes
          * along in V right this instant the wakeup can't go
@@ -317,10 +317,10 @@ void
 cv_wait(struct cv *cv, struct lock *lock)
 {
         // Write this
-        KASSERT(lock_do_i_hold(lock));
-        wchan_lock(cv->cv_wchan);
-        lock_release(lock);
-        wchan_sleep(cv->cv_wchan);
+        KASSERT(lock_do_i_hold(lock));//check do i hold the lock
+        wchan_lock(cv->cv_wchan);//lock the cv door
+        lock_release(lock);//clean the lock lock
+        wchan_sleep(cv->cv_wchan);//wating for someone wake it up
         lock_acquire(lock);
         //
         //(void)cv;    // suppress warning until code gets written
