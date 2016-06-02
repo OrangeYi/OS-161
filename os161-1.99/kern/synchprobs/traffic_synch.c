@@ -41,7 +41,7 @@
 //static struct semaphore *intersectionSem;
 static struct lock *InterLock;
 static struct cv *cvs[12];
-static int count[12];
+volatile int count[12];
 
 /* 
  * The simulation driver will call this function once before starting
@@ -55,7 +55,11 @@ intersection_sync_init(void)
 {
   /* replace this default implementation with your own implementation */
   for (int i = 0; i < 12; ++i)
-  { 
+  {
+      // char c[] = "A";
+      // c[1] = i; 
+      // cvs[i] = cv_create(c);
+      // printf("%c\n", c);
     if (i == 0){cvs[i] = cv_create("NW");}
     else if(i == 1){cvs[i] = cv_create("NE");}
     else if(i == 2){cvs[i] = cv_create("NS");}
@@ -68,6 +72,7 @@ intersection_sync_init(void)
     else if(i == 9){cvs[i] = cv_create("EN");}
     else if(i == 10){cvs[i] = cv_create("EW");}
     else if(i == 11){cvs[i] = cv_create("ES");}
+
 
     count[i] = 0;
 
@@ -134,7 +139,7 @@ intersection_before_entry(Direction origin, Direction destination)
   KASSERT(InterLock != NULL);
   lock_acquire(InterLock);
   struct cv *curcv;
-  int curcount;
+  volatile int curcount;
   while(true){
     if(origin == north && destination == west)      {curcv = cvs[0]; curcount = count[0];}
     else if(origin == north && destination == east) {curcv = cvs[1]; curcount = count[1];}
