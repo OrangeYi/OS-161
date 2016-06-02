@@ -56,31 +56,18 @@ intersection_sync_init(void)
   /* replace this default implementation with your own implementation */
   for (int i = 0; i < 12; ++i)
   { 
-    if (i == 0){
-      cvs[i] = cv_create("NW");
-    }else if(i == 1){
-      cvs[i] = cv_create("NE");
-    }else if(i == 2){
-      cvs[i] = cv_create("NS");
-    }else if(i == 3){
-      cvs[i] = cv_create("WN");
-    }else if(i == 4){
-      cvs[i] = cv_create("WE");
-    }else if(i == 5){
-      cvs[i] = cv_create("WS");
-    }else if(i == 6){
-      cvs[i] = cv_create("SW");
-    }else if(i == 7){
-      cvs[i] = cv_create("SN");
-    }else if(i == 8){
-      cvs[i] = cv_create("SE");
-    }else if(i == 9){
-      cvs[i] = cv_create("EN");
-    }else if(i == 10){
-      cvs[i] = cv_create("EW");
-    }else if(i == 11){
-      cvs[i] = cv_create("ES");
-    }
+    if (i == 0){cvs[i] = cv_create("NW");}
+    else if(i == 1){cvs[i] = cv_create("NE");}
+    else if(i == 2){cvs[i] = cv_create("NS");}
+    else if(i == 3){cvs[i] = cv_create("WN");}
+    else if(i == 4){cvs[i] = cv_create("WE");}
+    else if(i == 5){cvs[i] = cv_create("WS");}
+    else if(i == 6){cvs[i] = cv_create("SW");}
+    else if(i == 7){cvs[i] = cv_create("SN");}
+    else if(i == 8){cvs[i] = cv_create("SE");}
+    else if(i == 9){cvs[i] = cv_create("EN");}
+    else if(i == 10){cvs[i] = cv_create("EW");}
+    else if(i == 11){cvs[i] = cv_create("ES");}
 
     count[i] = 0;
 
