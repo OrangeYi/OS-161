@@ -60,7 +60,7 @@ intersection_sync_init(void)
       // c[1] = i; 
       // cvs[i] = cv_create(c);
       // printf("%c\n", c);
-    if (i == 0){cvs[i] = cv_create("NW");}
+    if (i == 0){cvs[i] = cv_create("NW");}//init
     else if(i == 1){cvs[i] = cv_create("NE");}
     else if(i == 2){cvs[i] = cv_create("NS");}
     else if(i == 3){cvs[i] = cv_create("WN");}
@@ -76,13 +76,12 @@ intersection_sync_init(void)
 
     count[i] = 0;
 
-    if (cvs[i] == NULL)
-    {
-      panic("could not create cvs");
+    if (cvs[i] == NULL){
+      panic("could not create cvs");//if creat cv fail
     }
   }
   InterLock = lock_create("intersectionlock");
-  if (InterLock == NULL) {
+  if (InterLock == NULL) {//if creat lock fail
     panic("could not create intersection locks");
   }
   return;
@@ -141,35 +140,59 @@ intersection_before_entry(Direction origin, Direction destination)
   struct cv *curcv;
   volatile int curcount;
   while(true){
-    if(origin == north && destination == west)      {curcv = cvs[0]; curcount = count[0];}
-    else if(origin == north && destination == east) {curcv = cvs[1]; curcount = count[1];}
-    else if(origin == north && destination == south){curcv = cvs[2]; curcount = count[2];}
-    else if(origin == west && destination == north) {curcv = cvs[3]; curcount = count[3];}
-    else if(origin == west && destination == east)  {curcv = cvs[4]; curcount = count[4];}
-    else if(origin == west && destination == south) {curcv = cvs[5]; curcount = count[5];}
-    else if(origin == south && destination == west) {curcv = cvs[6]; curcount = count[6];}
-    else if(origin == south && destination == north){curcv = cvs[7]; curcount = count[7];}
-    else if(origin == south && destination == east) {curcv = cvs[8]; curcount = count[8];}
-    else if(origin == east && destination == north) {curcv = cvs[9]; curcount = count[9];}
-    else if(origin == east && destination == west)  {curcv = cvs[10]; curcount = count[10];}
-    else{curcv = cvs[11]; curcount = count[11];}
+    if(origin == north && destination == west)      {curcv = cvs[0]; curcount = count[0];
+                                                    if(curcount == 0){
+                                                      count[6]++; count[10]++;
+                                                    }}
+    else if(origin == north && destination == east) {curcv = cvs[1]; curcount = count[1];
+                                                    if(curcount == 0){
+                                                      count[10]++; count[11]++; count[6]++; count[7]++; count[8]++; count[3]++; count[4]++;
+                                                    }}
+    else if(origin == north && destination == south){curcv = cvs[2]; curcount = count[2];
+                                                    if(curcount == 0){
+                                                      count[10]++; count[11]++; count[6]++; count[3]++; count[4]++; count[5]++;
+                                                    }}
+    else if(origin == west && destination == north) {curcv = cvs[3]; curcount = count[3];
+                                                    if(curcount == 0){
+                                                      count[1]++; count[2]++; count[9]++; count[10]++; count[11]++; count[6]++; count[7]++;
+                                                    }}
+    else if(origin == west && destination == east)  {curcv = cvs[4]; curcount = count[4];
+                                                    if(curcount == 0){
+                                                      count[6]++; count[7]++; count[8]++; count[11]++; count[1]++; count[2]++;
+                                                    }}
+    else if(origin == west && destination == south) {curcv = cvs[5]; curcount = count[5];
+                                                    if(curcount == 0){
+                                                      count[2]++; count[11]++;
+                                                    }}
+    else if(origin == south && destination == west) {curcv = cvs[6]; curcount = count[6];
+                                                    if(curcount == 0){
+                                                      count[0]++; count[1]++; count[2]++; count[10]++; count[11]++; count[3]++; count[4]++;
+                                                    }}
+    else if(origin == south && destination == north){curcv = cvs[7]; curcount = count[7];
+                                                    if(curcount == 0){
+                                                      count[1]++; count[9]++; count[10]++; count[11]++; count[3]++; count[4]++;
+                                                    }}
+    else if(origin == south && destination == east) {curcv = cvs[8]; curcount = count[8];
+                                                    if(curcount == 0){
+                                                      count[1]++; count[4]++;
+                                                    }}
+    else if(origin == east && destination == north) {curcv = cvs[9]; curcount = count[9];
+                                                    if(curcount == 0){
+                                                      count[3]++; count[7]++;
+                                                    }}
+    else if(origin == east && destination == west)  {curcv = cvs[10]; curcount = count[10];
+                                                    if(curcount == 0){
+                                                      count[0]++; count[1]++; count[2]++; count[6]++; count[7]++; count[3]++;
+                                                    }}
+    else{curcv = cvs[11]; curcount = count[11];
+                                                    if(curcount == 0){
+                                                      count[1]++; count[2]++; count[6]++; count[7]++; count[4]++; count[3]++; count[5]++;
+                                                    }}//according to the direction to get the current cv and its count
 
-    if(curcount == 0){
-      if(origin == north && destination == west)      {count[6]++; count[10]++;}//nw
-      else if(origin == north && destination == east) {count[10]++; count[11]++; count[6]++; count[7]++; count[8]++; count[3]++; count[4]++;}//ne
-      else if(origin == north && destination == south){count[10]++; count[11]++; count[6]++; count[3]++; count[4]++; count[5]++;}//ns
-      else if(origin == west && destination == north) {count[1]++; count[2]++; count[9]++; count[10]++; count[11]++; count[6]++; count[7]++;}//wn
-      else if(origin == west && destination == east)  {count[6]++; count[7]++; count[8]++; count[11]++; count[1]++; count[2]++;}//we
-      else if(origin == west && destination == south) {count[2]++; count[11]++;}//ws
-      else if(origin == south && destination == west) {count[0]++; count[1]++; count[2]++; count[10]++; count[11]++; count[3]++; count[4]++;}//sw
-      else if(origin == south && destination == north){count[1]++; count[9]++; count[10]++; count[11]++; count[3]++; count[4]++;}//sn
-      else if(origin == south && destination == east) {count[1]++; count[4]++;}//se
-      else if(origin == east && destination == north) {count[3]++; count[7]++;}//en
-      else if(origin == east && destination == west)  {count[0]++; count[1]++; count[2]++; count[6]++; count[7]++; count[3]++;}//ew
-      else{count[1]++; count[2]++; count[6]++; count[7]++; count[4]++; count[3]++; count[5]++;}//es
+    if(curcount == 0){//if this car can go than block other car which will crash
       break;
     }
-    else{
+    else{//if it cant go through than wait until someone call it
       cv_wait(curcv,InterLock);
     }
   }
@@ -198,6 +221,7 @@ intersection_after_exit(Direction origin, Direction destination)
   //V(intersectionSem);
   KASSERT(InterLock != NULL);
   lock_acquire(InterLock);
+  //to wake other cars which would crash current car after current go through the intersection
   if(origin == north && destination == west)      {count[6]--; count[10]--;
                                                   if(count[6] == 0){cv_broadcast(cvs[6],InterLock);}
                                                   if(count[10] == 0){cv_broadcast(cvs[10],InterLock);}}//nw
