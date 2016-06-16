@@ -39,11 +39,49 @@
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 
+#include "opt-A2.h"
+ #include <array.h>
+
+
 struct addrspace;
 struct vnode;
 #ifdef UW
 struct semaphore;
 #endif // UW
+
+
+
+#if OPT_A2
+pid_t countpid;//count the pid 
+struct array* reuse;//stoer all reuseable pid
+
+
+struct array* ppid;//store all relationship parent's pid
+struct array* pisrun;//store all relationship parent's whether is running
+struct array* cpid;//store all relationship children's pid
+struct array* cisrun;//store all relationship children whether is running
+struct array* cexitcode;//store all relationship exitcode pid
+//struct array* relationship;//store all relative 
+
+
+
+struct locker* locks;//differebt lock
+
+struct locker {
+	struct semaphore *reuselock;//to lock the reuse
+
+	struct lock *ppidlock;//to lock the ppid
+	struct lock *pisrunlock;//to lock the ppid
+	struct lock *cisrunlock;//to lock the ppid
+	struct lock *exitcodelock;//to lock the ppid
+	struct lock *cpidlock;//to lock the ppid
+
+	struct cv *cvlock;
+};
+#endif
+
+
+
 
 /*
  * Process structure.
@@ -58,6 +96,13 @@ struct proc {
 
 	/* VFS */
 	struct vnode *p_cwd;		/* current working directory */
+
+
+	#if OPT_A2
+    pid_t p_pid; // pid
+	#endif /* OPT_A2 */
+
+
 
 #ifdef UW
   /* a vnode to refer to the console device */
@@ -99,6 +144,7 @@ struct addrspace *curproc_getas(void);
 
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
-
-
+#if OPT_A2
+void freeall(int i);
+#endif
 #endif /* _PROC_H_ */

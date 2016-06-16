@@ -49,7 +49,11 @@
 #include <vnode.h>
 #include <vfs.h>
 #include <synch.h>
-#include <kern/fcntl.h>  
+#include <kern/fcntl.h>
+
+
+#include "opt-A2.h"
+
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -69,6 +73,21 @@ static struct semaphore *proc_count_mutex;
 struct semaphore *no_proc_sem;   
 #endif  // UW
 
+#if OPT_A2
+struct array *reuse;
+//struct array *relationship;
+
+
+struct array* ppid;//store all relationship parent's pid
+struct array* pisrun;//store all relationship parent's whether is running
+struct array* cpid;//store all relationship children's pid
+struct array* cisrun;//store all relationship children whether is running
+struct array* exitcode;//store all relationship exitcode pid
+
+
+struct locker* locks;
+pid_t countpid;
+#endif
 
 
 /*
@@ -99,9 +118,9 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
-#ifdef UW
+	#ifdef UW
 	proc->console = NULL;
-#endif // UW
+	#endif // UW
 
 	return proc;
 }
@@ -207,6 +226,34 @@ proc_bootstrap(void)
   if (no_proc_sem == NULL) {
     panic("could not create no_proc_sem semaphore\n");
   }
+
+
+  #if OPT_A2
+  locks = kmalloc(sizeof(*locks));//create locker
+  locks->reuselock = sem_create("reuselock",1);
+  //locks->relationshiplock = lock_create("relationshiplock");
+
+
+  locks->ppidlock = lock_create("ppidlock");
+  locks->pisrunlock = lock_create("pisrunlock");
+  locks->cisrunlock = lock_create("cisrunlock");
+  locks->exitcodelock = lock_create("exitcodeloc");
+  locks->cpidlock = lock_create("cpidlock");
+
+  locks->cvlock = cv_create("cvlock");
+  reuse = array_create();
+  //relationship = array_create();
+
+  ppid = array_create();
+  pisrun = array_create();
+  cpid = array_create();
+  cisrun = array_create();
+  cexitcode = array_create();
+
+  countpid = 1;//init the pid number
+  #endif
+
+
 #endif // UW 
 }
 
@@ -269,6 +316,25 @@ proc_create_runprogram(const char *name)
 	P(proc_count_mutex); 
 	proc_count++;
 	V(proc_count_mutex);
+
+
+	#if OPT_A2
+		P(locks->reuselock);//prctect other use reuse this struct
+		if(array_num(reuse) == 0){//if the list of reuse pid is empty then use the new pid
+			countpid++;
+			proc->p_pid = countpid;
+		}
+		else{
+			proc->p_pid = *((pid_t*) array_get(reuse,0));//get the first pid of the list of reuse and use it
+			kfree(array_get(reuse,0));//free the first pid in reuse
+			array_remove(reuse,0);//and remove it
+		}
+		V(locks->reuselock);
+	#endif
+
+
+
+
 #endif // UW
 
 	return proc;

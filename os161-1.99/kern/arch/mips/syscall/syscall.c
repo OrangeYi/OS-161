@@ -36,6 +36,7 @@
 #include <current.h>
 #include <syscall.h>
 
+#include "opt-A2.h"
 
 /*
  * System call dispatcher.
@@ -176,8 +177,26 @@ syscall(struct trapframe *tf)
  *
  * Thus, you can trash it and do things another way if you prefer.
  */
+#if OPT_A2
+void
+enter_forked_process(void *tf, unsigned long i)
+{
+    (void) i;
+
+    struct trapframe* newtf = (struct trapframe *) tf;
+    
+
+    newtf->tf_v0 = 0; // Set return = 0
+    newtf->tf_a3 = 0; // success
+    newtf->tf_epc += 4;//addr
+
+    struct trapframe tf1 = *newtf;
+    mips_usermode(&tf1);
+}
+#else
 void
 enter_forked_process(struct trapframe *tf)
 {
 	(void)tf;
 }
+#endif
