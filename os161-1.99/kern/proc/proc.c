@@ -86,7 +86,7 @@ struct array* exitcode;//store all relationship exitcode pid
 
 
 struct locker* locks;
-pid_t countpid;
+pid_t countpid;//counting the pid
 #endif
 
 
@@ -233,12 +233,12 @@ proc_bootstrap(void)
   locks->reuselock = sem_create("reuselock",1);
   //locks->relationshiplock = lock_create("relationshiplock");
 
-
+  //init
   locks->ppidlock = lock_create("ppidlock");
-  //locks->pisrunlock = lock_create("pisrunlock");
-  //locks->cisrunlock = lock_create("cisrunlock");
-  //locks->exitcodelock = lock_create("exitcodeloc");
-  //locks->cpidlock = lock_create("cpidlock");
+  locks->pisrunlock = lock_create("pisrunlock");
+  locks->cisrunlock = lock_create("cisrunlock");
+  locks->exitcodelock = lock_create("exitcodeloc");
+  locks->cpidlock = lock_create("cpidlock");
 
   locks->cvlock = cv_create("cvlock");
   reuse = array_create();
@@ -250,7 +250,7 @@ proc_bootstrap(void)
   cisrun = array_create();
   cexitcode = array_create();
 
-  countpid = 1;//init the pid number
+  countpid = 0;//init the pid number
   #endif
 
 

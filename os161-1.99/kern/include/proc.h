@@ -71,10 +71,10 @@ struct locker {
 	struct semaphore *reuselock;//to lock the reuse
 
 	struct lock *ppidlock;//to lock the ppid
-	//struct lock *pisrunlock;//to lock the ppid
-	//struct lock *cisrunlock;//to lock the ppid
-	//struct lock *exitcodelock;//to lock the ppid
-	//struct lock *cpidlock;//to lock the ppid
+	struct lock *pisrunlock;//to lock the ppid
+	struct lock *cisrunlock;//to lock the ppid
+	struct lock *exitcodelock;//to lock the ppid
+	struct lock *cpidlock;//to lock the ppid
 
 	struct cv *cvlock;
 };
