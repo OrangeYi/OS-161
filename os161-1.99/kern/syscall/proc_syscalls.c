@@ -83,25 +83,25 @@ void sys__exit(int exitcode) {
   for (unsigned i = 0; i < totalnumber; ++i)
   {
     //kprintf("%d\n", totalnumber);
-    pid_t tempppid = *((pid_t*) array_get(ppid,i));//parent pid
-    pid_t tempcpid = *((pid_t*) array_get(cpid,i));//child pid
+    pid_t* tempppid = (pid_t*) array_get(ppid,i);//parent pid
+    pid_t* tempcpid = (pid_t*) array_get(cpid,i);//child pid
 
-    int* a = array_get(pisrun, i);//to change the parent runing status
+    //int* a = (int*) array_get(pisrun, i);//to change the parent runing status
 
-    int crun = *((int*) array_get(cisrun,i));//get the child runing status
+    int* crun = (int*) array_get(cisrun,i);//get the child runing status
 
-    int* b = array_get(cisrun, i);//to change the child runing status
+    //int* b = (int*) array_get(cisrun, i);//to change the child runing status
 
-    int prun = *((int*) array_get(pisrun,i));//get the parent runing status
+    int* prun = (int*) array_get(pisrun,i);//get the parent runing status
 
-    int* change = array_get(cexitcode,i);//change the exit code
+    int* change = (int*) array_get(cexitcode,i);//change the exit code
 
-    if(p->p_pid == tempppid){//if it is a parent
+    if(p->p_pid == *tempppid){//if it is a parent
       // int a = 0;
       // array_set(pisrun, i, &a);
 
       
-      *a = 0;//set to 0(means not running)
+      *prun = 0;//set to 0(means not running)
 
 
       // int* k = kmalloc(sizeof(*k));
@@ -112,10 +112,10 @@ void sys__exit(int exitcode) {
 
       // array_set(pisrun, i, k);//set to 0
 
-      if(crun == 0){//if children die
+      if(*crun == 0){//if children die
         P(locks->reuselock);
           pid_t* tempcpid1 = kmalloc(sizeof(pid_t));
-          *tempcpid1 = tempcpid;
+          *tempcpid1 = *tempcpid;
           array_add(reuse, (void*) tempcpid1, NULL);//reuse
         V(locks->reuselock);
         freeall(i);//clean the i element of the 5 arrays
@@ -123,7 +123,7 @@ void sys__exit(int exitcode) {
         totalnumber--;
       }
     }
-    else if(p->p_pid == tempcpid){//if it is a children
+    else if(p->p_pid == *tempcpid){//if it is a children
       // int* k = kmalloc(sizeof(*k));
       // int* freep = (int*) array_get(cisrun,i);
       // kfree(freep);
@@ -131,26 +131,26 @@ void sys__exit(int exitcode) {
       // int a = 0;
       // array_set(cisrun, i, &a);//set to 0
 
-      *b = 0;//set to 0 (not running(child))
+      *crun = 0;//set to 0 (not running(child))
       
-      if(prun == 0){//if parent die
+      if(*prun == 0){//if parent die
         P(locks->reuselock);
-          pid_t* tempcpid1 = kmalloc(sizeof(pid_t));
-          *tempcpid1 = tempcpid;
-          array_add(reuse, (void*) tempcpid1, NULL);//reuse
+          pid_t* tempcpid2 = kmalloc(sizeof(pid_t));
+          *tempcpid2 = *tempcpid;
+          array_add(reuse, (void*) tempcpid2, NULL);//reuse
         V(locks->reuselock);
         freeall(i);
         i--;
         totalnumber--;
       }
-      else{
+      else if(*prun == 1){
         //int* tempexit = kmalloc(sizeof(int));
-        int tempexit = _MKWAIT_EXIT(exitcode);
+        //int tempexit = _MKWAIT_EXIT(exitcode);
         // //int* freeex = (int*) array_get(cexitcode,i);
         // //kfree(freeex);
         // //array_set(cexitcode, i, &tempexit);
         
-        *change = tempexit;
+        *change = _MKWAIT_EXIT(exitcode);
 
         //array_add(cexitcode, i, NULL) = _MKWAIT_EXIT(exitcode);
 
@@ -229,39 +229,41 @@ sys_waitpid(pid_t pid,
 	    int options,
 	    pid_t *retval)
 {
-  int exitstatus = 0;
+  int exitstatus;
   int result;
 
 
+  
+  #if OPT_A2
   struct proc* p = curproc;
 
-  #if OPT_A2
   lock_acquire(locks->ppidlock);
   //lock_acquire(locks->pisrunlock);
   //lock_acquire(locks->cisrunlock);
   //lock_acquire(locks->exitcodelock);
   //lock_acquire(locks->cpidlock);
-  int count = 0;
+  bool count = false;
   unsigned totalnumber = array_num(cexitcode);
   for (unsigned i = 0; i < totalnumber; ++i)
   {
-    pid_t tempppid = *((pid_t*) array_get(ppid,i));//parent pid
-    pid_t tempcpid = *((pid_t*) array_get(cpid,i));//child pid
+    pid_t* tempppidw = (pid_t*) array_get(ppid,i);//parent pid
+    pid_t* tempcpidw = (pid_t*) array_get(cpid,i);//child pid
 
     int* crun = (int*) array_get(cisrun,i);//child runing status
 
-    int* exitt = array_get(cexitcode,i);//exit code
-    if(pid == tempcpid){//pid is a children and not a children of curproc
+    int* exitt = (int*) array_get(cexitcode,i);//exit code
+    if(pid == *tempcpidw && *tempppidw != p->p_pid){//pid is a children and not a children of curproc
       
-      if(tempppid != p->p_pid){
+      //if(*tempppid != p->p_pid){
         //lock_release(locks->cpidlock);
         //lock_release(locks->exitcodelock);
         //lock_release(locks->cisrunlock);
         //lock_release(locks->pisrunlock);
         lock_release(locks->ppidlock);
-        return(16);/* No child processes */
-      }
-    else{
+        //return(16);/* No child processes */
+        continue;
+    }
+    else if(pid == *tempcpidw && *tempppidw == p->p_pid){
       
       while(*crun == 1){//child hasnt die
         cv_wait(locks->cvlock,locks->ppidlock);
@@ -275,9 +277,8 @@ sys_waitpid(pid_t pid,
       if(*crun == 0){
         exitstatus = *exitt;
       }
-      count = 1;
+      count = true;
       break;
-      }
     }
     //totalnumber = array_num(ppid);
   }
@@ -286,7 +287,7 @@ sys_waitpid(pid_t pid,
   //lock_release(locks->cisrunlock);
   //lock_release(locks->pisrunlock);
   lock_release(locks->ppidlock);
-  if(count == 0){
+  if(count == false){
     return(15);/* No such process */
   }
   #endif
@@ -336,7 +337,7 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
 
   struct addrspace* newas;
   int check = -1;
-  check = as_copy(curproc->p_addrspace,&newas);
+  check = as_copy(curproc->p_addrspace,&newas);// Create and copy address space
   if(check == 3){//out out memoer
     proc_destroy(newproc);
     P(locks->reuselock);
@@ -405,9 +406,9 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
     unsigned totalnumber = array_num(ppid);
     for (unsigned i = 0; i < totalnumber; ++i)//clean the element already create
     {
-      pid_t tempppid = *((pid_t*) array_get(ppid,i));
-      pid_t tempcpid = *((pid_t*) array_get(cpid,i));
-      if(tempppid == curproc->p_pid && tempcpid == newproc->p_pid){
+      pid_t* tempppidf = (pid_t*) array_get(ppid,i);
+      pid_t* tempcpidf = (pid_t*) array_get(cpid,i);
+      if(*tempppidf == curproc->p_pid && *tempcpidf == newproc->p_pid){
         freeall(i);
         i--;
         totalnumber--;

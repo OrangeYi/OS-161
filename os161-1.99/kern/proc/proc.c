@@ -222,10 +222,6 @@ proc_bootstrap(void)
   if (proc_count_mutex == NULL) {
     panic("could not create proc_count_mutex semaphore\n");
   }
-  no_proc_sem = sem_create("no_proc_sem",0);
-  if (no_proc_sem == NULL) {
-    panic("could not create no_proc_sem semaphore\n");
-  }
 
 
   #if OPT_A2
@@ -254,6 +250,10 @@ proc_bootstrap(void)
   #endif
 
 
+  no_proc_sem = sem_create("no_proc_sem",0);
+  if (no_proc_sem == NULL) {
+    panic("could not create no_proc_sem semaphore\n");
+  }
 #endif // UW 
 }
 
@@ -326,7 +326,7 @@ proc_create_runprogram(const char *name)
 		}
 		else{
 			proc->p_pid = *((pid_t*) array_get(reuse,0));//get the first pid of the list of reuse and use it
-			kfree(array_get(reuse,0));//free the first pid in reuse
+			kfree((pid_t*) array_get(reuse,0));//free the first pid in reuse
 			array_remove(reuse,0);//and remove it
 		}
 		V(locks->reuselock);
