@@ -40,7 +40,7 @@
 #include <thread.h> /* required for struct threadarray */
 
 #include "opt-A2.h"
- #include <array.h>
+#include <array.h>
 
 
 struct addrspace;
@@ -71,10 +71,10 @@ struct locker {
 	struct semaphore *reuselock;//to lock the reuse
 
 	struct lock *ppidlock;//to lock the ppid
-	struct lock *pisrunlock;//to lock the ppid
-	struct lock *cisrunlock;//to lock the ppid
-	struct lock *exitcodelock;//to lock the ppid
-	struct lock *cpidlock;//to lock the ppid
+	//struct lock *pisrunlock;//to lock the ppid
+	//struct lock *cisrunlock;//to lock the ppid
+	//struct lock *exitcodelock;//to lock the ppid
+	//struct lock *cpidlock;//to lock the ppid
 
 	struct cv *cvlock;
 };
@@ -144,7 +144,7 @@ struct addrspace *curproc_getas(void);
 
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
-#if OPT_A2
-void freeall(int i);
-#endif
+// #if OPT_A2
+// void freeall(int i);
+// #endif
 #endif /* _PROC_H_ */

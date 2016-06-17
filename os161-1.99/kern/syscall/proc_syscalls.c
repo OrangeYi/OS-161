@@ -22,7 +22,7 @@
   /* this needs to be fixed to get exit() and waitpid() working properly */
 
 
-#if OPT_A2
+//#if OPT_A2
 // struct relative {
 //   pid_t ppid;
 //   int pisrun;
@@ -32,7 +32,7 @@
 // };
 
 
-#endif
+//#endif
 
 
 //ppid;
@@ -70,31 +70,42 @@ void sys__exit(int exitcode) {
 
 
 
-
+  //DEBUG(DB_SYSCALL, "EXIT\n");
+  //kprintf("ddfdfd\n");
 #if OPT_A2
   lock_acquire(locks->ppidlock);
-  lock_acquire(locks->pisrunlock);
-  lock_acquire(locks->cisrunlock);
-  lock_acquire(locks->exitcodelock);
-  lock_acquire(locks->cpidlock);
+  // lock_acquire(locks->pisrunlock);
+  // lock_acquire(locks->cisrunlock);
+  // lock_acquire(locks->exitcodelock);
+  // lock_acquire(locks->cpidlock);
 
   unsigned totalnumber = array_num(ppid);
   for (unsigned i = 0; i < totalnumber; ++i)
   {
-    pid_t* tempppid = (pid_t*) array_get(ppid,i);
-    pid_t* tempcpid = (pid_t*) array_get(cpid,i);
-    if(p->p_pid == *tempppid){//if it is a parent
-      int* k = kmalloc(sizeof(*k));
-      int* freep = (int*) array_get(pisrun,i);
-      kfree(freep);
-      k = 0;
-      array_set(pisrun, i, k);//set to 0
+    //kprintf("%d\n", totalnumber);
+    pid_t tempppid = *((pid_t*) array_get(ppid,i));
+    pid_t tempcpid = *((pid_t*) array_get(cpid,i));
+    if(p->p_pid == tempppid){//if it is a parent
+      // int a = 0;
+      // array_set(pisrun, i, &a);
 
-      int* crun = (int*) array_get(cisrun,i);
-      if(*crun == 0){//if children die
+      int* a = array_get(pisrun, i);
+      *a = 0;
+
+
+      // int* k = kmalloc(sizeof(*k));
+      // int* freep = (int*) array_get(pisrun,i);
+      // *freep = 0;
+      // kfree(freep);
+      // *k = 0;
+
+      // array_set(pisrun, i, k);//set to 0
+
+      int crun = *((int*) array_get(cisrun,i));
+      if(crun == 0){//if children die
         P(locks->reuselock);
           pid_t* tempcpid = kmalloc(sizeof(pid_t));
-          tempcpid = (pid_t*) array_get(cpid,i);
+          *tempcpid = *((pid_t*) array_get(cpid,i));
           array_add(reuse, (void*) tempcpid, NULL);
         V(locks->reuselock);
         freeall(i);
@@ -102,18 +113,21 @@ void sys__exit(int exitcode) {
         totalnumber--;
       }
     }
-    else if(p->p_pid == *tempcpid){
-      int *k = kmalloc(sizeof(*k));
-      int *freep = (int*) array_get(cisrun,i);
-      kfree(freep);
-      k = 0;
-      array_set(cisrun, i, k);//set to 0
+    else if(p->p_pid == tempcpid){//if it is a children
+      // int* k = kmalloc(sizeof(*k));
+      // int* freep = (int*) array_get(cisrun,i);
+      // kfree(freep);
+      // *k = 0;
+      // int a = 0;
+      // array_set(cisrun, i, &a);//set to 0
 
-      int *crun1 = (int*) array_get(cisrun,i);
-      if(crun1 == 0){
+      int* b = array_get(cisrun, i);
+      *b = 0;
+      int prun = *((int*) array_get(pisrun,i));
+      if(prun == 0){//if children die
         P(locks->reuselock);
           pid_t* tempcpid = kmalloc(sizeof(pid_t));
-          tempcpid = (pid_t*) array_get(cpid,i);
+          *tempcpid = *((pid_t*) array_get(cpid,i));
           array_add(reuse, (void*) tempcpid, NULL);
         V(locks->reuselock);
         freeall(i);
@@ -121,24 +135,37 @@ void sys__exit(int exitcode) {
         totalnumber--;
       }
       else{
-        int* tempexit = kmalloc(sizeof(int));
-        *tempexit = _MKWAIT_EXIT(exitcode);
-        int *freeex = (int*) array_get(cexitcode,i);
-        kfree(freeex);
-        array_set(cexitcode, i, tempexit);
+        //int* tempexit = kmalloc(sizeof(int));
+        int tempexit = _MKWAIT_EXIT(exitcode);
+        // //int* freeex = (int*) array_get(cexitcode,i);
+        // //kfree(freeex);
+        // //array_set(cexitcode, i, &tempexit);
+        int* change = array_get(cexitcode,i);
+        *change = tempexit;
+
+        //array_add(cexitcode, i, NULL) = _MKWAIT_EXIT(exitcode);
+
         cv_broadcast(locks->cvlock, locks->ppidlock); 
-        cv_broadcast(locks->cvlock, locks->pisrunlock); 
-        cv_broadcast(locks->cvlock, locks->cpidlock); 
-        cv_broadcast(locks->cvlock, locks->cisrunlock); 
-        cv_broadcast(locks->cvlock, locks->exitcodelock); 
+        // cv_broadcast(locks->cvlock, locks->pisrunlock); 
+        // cv_broadcast(locks->cvlock, locks->cpidlock); 
+        // cv_broadcast(locks->cvlock, locks->cisrunlock); 
+        // cv_broadcast(locks->cvlock, locks->exitcodelock); 
       }
     }
   }
-  lock_release(locks->ppidlock);
-  lock_release(locks->pisrunlock);
-  lock_release(locks->cisrunlock);
-  lock_release(locks->exitcodelock);
-  lock_release(locks->cpidlock);
+  //lock_release(locks->cpidlock);
+  // lock_release(locks->exitcodelock);
+  // lock_release(locks->cisrunlock);
+  // lock_release(locks->pisrunlock);
+   lock_release(locks->ppidlock);
+  
+  
+  
+  
+  
+    
+  
+  
 #endif
 
 
@@ -176,10 +203,9 @@ sys_getpid(pid_t *retval)
 {
   /* for now, this is just a stub that always returns a PID of 1 */
   /* you need to fix this to make it work properly */
+  *retval = 1;
   #if OPT_A2
   *retval = curproc->p_pid;
-  #else
-  *retval = 1;
   #endif /* OPT_A2 */
   return(0);
 }
@@ -192,57 +218,61 @@ sys_waitpid(pid_t pid,
 	    int options,
 	    pid_t *retval)
 {
-  int exitstatus;
+  int exitstatus = 0;
   int result;
 
 
-
+  struct proc* p = curproc;
 
   #if OPT_A2
   lock_acquire(locks->ppidlock);
-  lock_acquire(locks->pisrunlock);
-  lock_acquire(locks->cisrunlock);
-  lock_acquire(locks->exitcodelock);
-  lock_acquire(locks->cpidlock);
+  // lock_acquire(locks->pisrunlock);
+  // lock_acquire(locks->cisrunlock);
+  // lock_acquire(locks->exitcodelock);
+  // lock_acquire(locks->cpidlock);
+  int count = 0;
   unsigned totalnumber = array_num(ppid);
   for (unsigned i = 0; i < totalnumber; ++i)
   {
-    pid_t* tempppid = (pid_t*) array_get(ppid,i);
-    pid_t* tempcpid = (pid_t*) array_get(cpid,i);
-    if(pid == *tempcpid || *tempppid != curproc->p_pid){//pid is a children and not a children of curproc
-      lock_release(locks->ppidlock);
-      lock_release(locks->pisrunlock);
-      lock_release(locks->cisrunlock);
-      lock_release(locks->exitcodelock);
-      lock_release(locks->cpidlock);
-      return(16);/* No child processes */
-    }
-    else if(pid == *tempcpid || *tempppid == curproc->p_pid){
-      int *crun = (int*) array_get(cisrun,i);
-      while(*crun == 1){
-        cv_wait(locks->cvlock,locks->ppidlock);
-        cv_wait(locks->cvlock,locks->pisrunlock);
-        cv_wait(locks->cvlock,locks->cpidlock);
-        cv_wait(locks->cvlock,locks->cisrunlock);
-        cv_wait(locks->cvlock,locks->exitcodelock);
-        crun = (int*) array_get(cisrun,i);
+    pid_t tempppid = *((pid_t*) array_get(ppid,i));
+    pid_t tempcpid = *((pid_t*) array_get(cpid,i));
+    if(pid == tempcpid){//pid is a children and not a children of curproc
+      // lock_release(locks->cpidlock);
+      // lock_release(locks->exitcodelock);
+      // lock_release(locks->cisrunlock);
+      // lock_release(locks->pisrunlock);
+      if(tempppid != p->p_pid){
+        lock_release(locks->ppidlock);
+        return(16);/* No child processes */
       }
-      crun = (int*) array_get(cisrun,i);
-      if(crun == 0){
-        int* exitt = array_get(cexitcode,i);
+    else{
+      int* crun = (int*) array_get(cisrun,i);
+      while(*crun == 1){
+        // cv_wait(locks->cvlock,locks->exitcodelock);
+        // cv_wait(locks->cvlock,locks->cisrunlock);
+        // cv_wait(locks->cvlock,locks->cpidlock);
+        // cv_wait(locks->cvlock,locks->pisrunlock);
+        cv_wait(locks->cvlock,locks->ppidlock);
+        //crun = *((int*) array_get(cisrun,i));        
+      }
+      //int crun = *((int*) array_get(cisrun,i));
+      if(*crun == 0){
+        int* exitt = (int*) array_get(cexitcode,i);
         exitstatus = *exitt;
       }
+      count = 1;
       break;
-    }
-    else{
-      return(15);/* No such process */
+      }
     }
   }
+  // lock_release(locks->cpidlock);
+  // lock_release(locks->exitcodelock);
+  // lock_release(locks->cisrunlock);
+  // lock_release(locks->pisrunlock);
   lock_release(locks->ppidlock);
-  lock_release(locks->pisrunlock);
-  lock_release(locks->cisrunlock);
-  lock_release(locks->exitcodelock);
-  lock_release(locks->cpidlock);
+  if(count == 0){
+    return(15);/* No such process */
+  }
   #endif
 
 
@@ -270,7 +300,7 @@ sys_waitpid(pid_t pid,
 
 #if OPT_A2
 int sys_fork(struct trapframe* tf, pid_t* retval){
-  DEBUG(DB_SYSCALL,"sysfork 1\n");
+  //DEBUG(DB_SYSCALL,"sysfork 1\n");
 
   struct proc* newproc;
   newproc = proc_create_runprogram(curproc->p_name);
@@ -280,9 +310,9 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
 
 
   if(newproc->p_pid > 32767){//lager than the max pid number
+    proc_destroy(newproc);
     P(locks->reuselock);
       countpid--;
-      proc_destroy(newproc);
     V(locks->reuselock);
     return(12); /* Too many processes in system */
   }
@@ -292,9 +322,9 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
   int check = -1;
   check = as_copy(curproc->p_addrspace,&newas);
   if(check == 3){//out out memoer
+    proc_destroy(newproc);
     P(locks->reuselock);
       countpid--;
-      proc_destroy(newproc);
     V(locks->reuselock);
     return(3); //our of memory
   }
@@ -306,9 +336,9 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
   struct trapframe* newtf;//creat new trapframe
   newtf = kmalloc(sizeof(*newtf));
   if(newtf == NULL){
+    proc_destroy(newproc);
     P(locks->reuselock);
       countpid--;
-      proc_destroy(newproc);
     V(locks->reuselock);
     return(3); //our of memory
   }
@@ -317,17 +347,16 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
   }
 
 
-
+  lock_acquire(locks->ppidlock);
   pid_t* newppid = kmalloc(sizeof(*newppid));
   pid_t* newcpid = kmalloc(sizeof(*newcpid));
   int* newpisrun = kmalloc(sizeof(*newpisrun));
   int* newcisrun = kmalloc(sizeof(*newcisrun));
   int* newexit = kmalloc(sizeof(*newexit));
-  lock_acquire(locks->ppidlock);
-  lock_acquire(locks->pisrunlock);
-  lock_acquire(locks->cisrunlock);
-  lock_acquire(locks->exitcodelock);
-  lock_acquire(locks->cpidlock);
+    // lock_acquire(locks->pisrunlock);
+  // lock_acquire(locks->cisrunlock);
+  // lock_acquire(locks->exitcodelock);
+  // lock_acquire(locks->cpidlock);
   *newppid = curproc->p_pid;
   *newcpid = newproc->p_pid;
   *newpisrun = 1;
@@ -338,11 +367,11 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
   array_add(pisrun,newpisrun,NULL);
   array_add(cisrun,newcisrun,NULL);
   array_add(cexitcode,newexit,NULL);
+  // lock_release(locks->cpidlock);
+  // lock_release(locks->exitcodelock);
+  // lock_release(locks->cisrunlock);
+  // lock_release(locks->pisrunlock);
   lock_release(locks->ppidlock);
-  lock_release(locks->pisrunlock);
-  lock_release(locks->cisrunlock);
-  lock_release(locks->exitcodelock);
-  lock_release(locks->cpidlock);
 
 
   check = thread_fork("fthread", newproc, enter_forked_process,(void*)newtf, 1);
@@ -353,30 +382,32 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
     V(locks->reuselock);
 
     lock_acquire(locks->ppidlock);
-    lock_acquire(locks->pisrunlock);
-    lock_acquire(locks->cisrunlock);
-    lock_acquire(locks->exitcodelock);
-    lock_acquire(locks->cpidlock);
+    // lock_acquire(locks->pisrunlock);
+    // lock_acquire(locks->cisrunlock);
+    // lock_acquire(locks->exitcodelock);
+    // lock_acquire(locks->cpidlock);
     unsigned totalnumber = array_num(ppid);
     for (unsigned i = 0; i < totalnumber; ++i)
     {
-      pid_t* tempppid = (pid_t*) array_get(ppid,i);
-      pid_t* tempcpid = (pid_t*) array_get(cpid,i);
-      if(*tempppid == curproc->p_pid && *tempcpid == newproc->p_pid){
+      pid_t tempppid = *((pid_t*) array_get(ppid,i));
+      pid_t tempcpid = *((pid_t*) array_get(cpid,i));
+      if(tempppid == curproc->p_pid && tempcpid == newproc->p_pid){
         freeall(i);
+        i--;
+        totalnumber--;
       }
     }
+    // lock_release(locks->cpidlock);
+    // lock_release(locks->exitcodelock);
+    // lock_release(locks->cisrunlock);
+    // lock_release(locks->pisrunlock);
     lock_release(locks->ppidlock);
-    lock_release(locks->pisrunlock);
-    lock_release(locks->cisrunlock);
-    lock_release(locks->exitcodelock);
-    lock_release(locks->cpidlock);
+
 
     proc_destroy(newproc);
+    return 3;
   }
-  else{
-    *retval = newproc->p_pid;
-  }
+  *retval = newproc->p_pid;
   return 0;
 }
 

@@ -133,6 +133,13 @@ syscall(struct trapframe *tf)
 #endif // UW
 
 	    /* Add stuff here */
+#if OPT_A2
+	case SYS_fork:
+	  err = sys_fork(tf, (pid_t *)&retval);
+
+	  break;
+
+#endif /* OPT_A2 */  
  
 	default:
 	  kprintf("Unknown syscall %d\n", callno);
@@ -184,13 +191,13 @@ enter_forked_process(void *tf, unsigned long i)
     (void) i;
 
     struct trapframe* newtf = (struct trapframe *) tf;
-    
-
-    newtf->tf_v0 = 0; // Set return = 0
-    newtf->tf_a3 = 0; // success
-    newtf->tf_epc += 4;//addr
-
     struct trapframe tf1 = *newtf;
+    kfree(newtf);
+    tf1.tf_v0 = 0; // Set return = 0
+    tf1.tf_a3 = 0; // success
+    tf1.tf_epc += 4;//addr
+
+    
     mips_usermode(&tf1);
 }
 #else

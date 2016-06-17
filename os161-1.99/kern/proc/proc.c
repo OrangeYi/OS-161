@@ -74,7 +74,7 @@ struct semaphore *no_proc_sem;
 #endif  // UW
 
 #if OPT_A2
-struct array *reuse;
+struct array* reuse;
 //struct array *relationship;
 
 
@@ -235,10 +235,10 @@ proc_bootstrap(void)
 
 
   locks->ppidlock = lock_create("ppidlock");
-  locks->pisrunlock = lock_create("pisrunlock");
-  locks->cisrunlock = lock_create("cisrunlock");
-  locks->exitcodelock = lock_create("exitcodeloc");
-  locks->cpidlock = lock_create("cpidlock");
+  //locks->pisrunlock = lock_create("pisrunlock");
+  //locks->cisrunlock = lock_create("cisrunlock");
+  //locks->exitcodelock = lock_create("exitcodeloc");
+  //locks->cpidlock = lock_create("cpidlock");
 
   locks->cvlock = cv_create("cvlock");
   reuse = array_create();
