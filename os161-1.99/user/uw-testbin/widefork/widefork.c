@@ -32,8 +32,6 @@ dofork(int childnum)
   }
   else if (pid == 0) {
     /* child */
-      //putchar(childnum-1);
-      //putchar('\n');
     putchar('A'+childnum-1);
     putchar('\n');
     _exit(childnum);
@@ -50,11 +48,6 @@ dowait(int childpid, int childnum)
     return;
   }
   if (WIFEXITED(rval)) {
-      //putchar('t');
-      //putchar('\n');
-      //int k = WEXITSTATUS(rval);
-      //printf("%d\n",k);
-      //printf("%d\n",childnum);
     if ((WEXITSTATUS(rval)) == childnum) {
       putchar('a'+childnum-1);
       putchar('\n');
