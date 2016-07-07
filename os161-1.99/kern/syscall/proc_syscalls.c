@@ -15,6 +15,9 @@
 #include <synch.h>
 #include <array.h>
 #include <mips/trapframe.h>
+#include <kern/fcntl.h>
+#include <vfs.h>
+
 
 
 
@@ -422,11 +425,128 @@ int sys_fork(struct trapframe* tf, pid_t* retval){
 
 
     proc_destroy(newproc);
-    return 3;
+    return (3);
   }
   *retval = newproc->p_pid;
-  return 0;
+  return (0);
 }
 
 #endif
+#if OPT_A2
+int
+sys_execv(char* program, char** args, int* retval){
+  (void)retval;
+  int result;
+  int length = 0;
 
+  //checkargs and count
+  char** checkargs;
+  result = copyin((const_userptr_t)args, &checkargs, sizeof(char*));
+  if(result){return result;}
+  int countargs = 0;//sizeof(args) / sizeof(args[0]); /// sizeof(char*); //for \0
+
+  for(int i = 0; args[i] != NULL; ++i){//count arguments
+     ++countargs;
+   }
+  ++countargs;//+ null
+
+  if(countargs > 1024){return (14);}//1024 is the maximum arguments
+
+
+
+  //copy the args into kernel
+  char** kernalargs = kmalloc(sizeof(char*) * countargs);
+  for (int i = 0; i < countargs - 1; ++i)
+  {
+    kernalargs[i] = kmalloc(sizeof(char) * (strlen(args[i]) + 1));
+    result = copyinstr((const_userptr_t)args[i], kernalargs[i], sizeof(char) * strlen(args[i]) + 1, NULL);
+    if (result){return result;}
+    if(i == countargs - 2){
+      kernalargs[i+1] = NULL;
+    }
+  }
+  //kernalargs[countargs-1] = NULL;
+
+
+
+  //copy program into kernal
+  char* kernalprogram = kmalloc(sizeof(char) * (strlen(program) + 1));
+  result = copyinstr((const_userptr_t)program, kernalprogram, sizeof(char) * strlen(program) + 1, NULL);
+  if(result){return result;}
+
+
+
+  struct addrspace *as;
+  struct vnode *v;
+  vaddr_t entrypoint, stackptr;
+
+  /* Open the file. */
+  result = vfs_open(kernalprogram, O_RDONLY, 0, &v);
+  if (result) {
+    return result;
+  }
+
+  /* We should be a new process. */
+  //KASSERT(curproc_getas() == NULL);
+
+  /* Create a new address space. */
+  as = as_create();
+  if (as ==NULL) {
+    vfs_close(v);
+    return ENOMEM;
+  }
+
+  /* Switch to it and activate it. */
+  struct addrspace* old_as; // old address space
+  old_as = curproc_setas(as);
+  as_activate();
+
+  /* Load the executable. */
+  result = load_elf(v, &entrypoint);
+  if (result) {
+    /* p_addrspace will go away when curproc is destroyed */
+    vfs_close(v);
+    return result;
+  }
+
+  /* Done with the file now. */
+  vfs_close(v);
+
+  //using as_define_stack copy argement into new address space
+  result = as_define_stack(as, &stackptr);
+  if(result){
+    return result;
+  }
+
+
+  //Use copyoutstr when copying NULL terminated strings
+  userptr_t userargements[countargs];
+  for (int i = 0; i < countargs - 1; ++i)
+  {
+    length = ROUNDUP(strlen(kernalargs[i]) + 1, 8);
+    stackptr = stackptr - length;
+    userargements[i] = (userptr_t)stackptr;
+    result = copyoutstr(kernalargs[i], (userptr_t)stackptr, sizeof(char) * length, NULL);
+    if(result){return result;}
+  }
+
+  //Use copyout for fixed size variables
+  userargements[countargs - 1] = NULL;
+
+  length = ROUNDUP(countargs * 4, 8);
+  stackptr = stackptr - length;
+  result = copyout(userargements, (userptr_t)stackptr, (size_t)length);
+  if(result){return result;}
+
+  //destory old space
+  as_destroy(old_as);
+
+  enter_new_process(countargs-1, (userptr_t)stackptr /*userspace addr of argv*/,
+        stackptr, entrypoint);
+  
+  /* enter_new_process does not return. */
+  //panic("enter_new_process returned\n");
+  return 0;
+
+}
+#endif
