@@ -40,6 +40,11 @@
 #include <mainbus.h>
 #include <syscall.h>
 
+#include "opt-A3.h"
+#include <proc.h>
+#include <synch.h>
+#include <kern/wait.h>
+#include <addrspace.h>
 
 /* in exception.S */
 extern void asm_usermode(struct trapframe *tf);
@@ -111,6 +116,74 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	/*
 	 * You will probably want to change this.
 	 */
+
+	#if OPT_A3//copy from sys_exits
+	struct proc *p = curproc;
+	struct addrspace *as;
+
+	lock_acquire(locks->ppidlock);
+  	unsigned totalnumber = array_num(ppid);
+  	for (unsigned i = 0; i < totalnumber; ++i)
+  	{
+  	  pid_t* tempppid = (pid_t*) array_get(ppid,i);//parent pid
+  	  pid_t* tempcpid = (pid_t*) array_get(cpid,i);//child pid
+  	  int* crun = (int*) array_get(cisrun,i);//get the child runing status
+  	  int* prun = (int*) array_get(pisrun,i);//get the parent runing status
+  	  int* change = (int*) array_get(cexitcode,i);//change the exit code
+  	  if(p->p_pid == *tempppid){//if it is a parent
+  	    *prun = 0;//set to 0(means not running)
+  	    if(*crun == 0){//if children die
+  	      P(locks->reuselock);
+  	        pid_t* tempcpid1 = kmalloc(sizeof(pid_t));
+  	        *tempcpid1 = *tempcpid;
+  	        array_add(reuse, (void*) tempcpid1, NULL);//reuse
+  	      V(locks->reuselock);
+  	      freeall(i);//clean the i element of the 5 arrays
+  	      i--;
+  	      totalnumber--;
+  	    }
+  	  }
+  	  else if(p->p_pid == *tempcpid){//if it is a children
+  	    *crun = 0;//set to 0 (not running(child))
+  	    if(*prun == 0){//if parent die
+  	      P(locks->reuselock);
+  	        pid_t* tempcpid2 = kmalloc(sizeof(pid_t));
+  	        *tempcpid2 = *tempcpid;
+  	        array_add(reuse, (void*) tempcpid2, NULL);//reuse
+  	      V(locks->reuselock);
+  	      freeall(i);
+  	      i--;
+  	      totalnumber--;
+  	    }
+  	    else if(*prun == 1){        
+  	      *change = _MKWAIT_SIG(sig);//change to sig not exit
+  	      cv_broadcast(locks->cvlock, locks->ppidlock); //wake all chidren
+  	    }
+  	  }
+  	}
+  	lock_release(locks->ppidlock);
+  	as_deactivate();
+    /*
+     * clear p_addrspace before calling as_destroy. Otherwise if
+     * as_destroy sleeps (which is quite possible) when we
+     * come back we'll be calling as_activate on a
+     * half-destroyed address space. This tends to be
+     * messily fatal.
+     */
+    as = curproc_setas(NULL);
+    as_destroy(as);
+  
+    /* detach this thread from its process */
+    /* note: curproc cannot be used after this call */
+    proc_remthread(curthread);
+  
+    /* if this is the last user process in the system, proc_destroy()
+       will wake up the kernel menu thread */
+    proc_destroy(p);
+    
+    thread_exit();
+
+	#endif
 
 	kprintf("Fatal user mode trap %u sig %d (%s, epc 0x%x, vaddr 0x%x)\n",
 		code, sig, trapcodenames[code], epc, vaddr);
